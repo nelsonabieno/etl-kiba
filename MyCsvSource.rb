@@ -11,19 +11,12 @@ class MyCsvSource
 
   def formatPropertyTableColumn word
     camelizedArray = word.scan(/[A-Z][a-z]+/)
-
-    if camelizedArray.count == 2
-      "#{camelizedArray[0]}_#{camelizedArray[1]}"
-    elsif camelizedArray.count == 3
-      "#{camelizedArray[0]}_#{camelizedArray[1]}_#{camelizedArray[2]}"
-    else
-      word
-    end
-
+    # camelizedArray = word.underscore #use humanize  word.underscore
+    camelizedArray.join('_')
   end
 
   def formatHashColumn(tableName,code,label)
-    "{table: :#{tableName}, code: '#{code}', label: '#{label}'}"
+    "{table: :#{tableName.downcase()}, code: '#{code}', label: '#{label}'}"
   end
 
   def each
@@ -34,8 +27,37 @@ class MyCsvSource
 
     resultArray = []
     prefixArray = []
+    count = 0
+    statusArray = %w[ active active under-contract sold withdrawn expired temporarily-off-market rented ]
+
+    lookupPrefixHash = {  :construction_type =>   'constype',
+                          :cooling_type =>  'cooltype',
+                          :fireplace_type =>  'fireplace',
+                          :heating_type =>  'heating',
+                          :interior_feature =>  'interior',
+                          :land_type =>  'land',
+                          :mls_area =>  'area',
+                          :parking_type =>  'parking',
+                          :roof_type =>  'roof',
+                          :sewer_type =>  'sewer',
+                          :water_source =>  'water',
+                          :property_status =>  'status'
+                      }
 
     columnA.each_with_index  do |row, index|
+
+      count = count + 1
+
+      # unless (columnA[index].to_s.strip.empty?) && (columnC[index] == columnC[index-1])
+      #   count = 0
+      # end
+      # puts "'#{columnC[index] columnC[index-1]}'"
+
+
+      if  (columnA[index].to_s.strip.empty?) && (columnC[index] != columnC[index - 2])
+        count = 0
+      end
+
       unless columnA[index].nil?
         prefixArray.push(columnA[index])
       end
@@ -45,19 +67,36 @@ class MyCsvSource
       end
 
       unless columnC[index].nil?
-        getPropertyTableCol = formatPropertyTableColumn (columnC[index])
-        getFormattedHash = formatHashColumn(
-                            getPropertyTableCol,
-                            columnC[index].downcase(),
-                            columnB[index]
-                          )
 
+        getPropertyTableCol = formatPropertyTableColumn (columnC[index])
+
+        propertyTableColLower =  getPropertyTableCol.downcase()
+
+        lookupPrefix = if lookupPrefixHash.include?  propertyTableColLower
+                         lookupPrefixHash[propertyTableColLower]
+                       else
+                         "#{columnC[index]}"
+                       end
+
+        getFormattedHash = formatHashColumn(
+            getPropertyTableCol,
+            "#{lookupPrefix.downcase}#{index+1}",
+            columnB[index]
+        )
+
+        if columnC[index] == "PropertyStatus"
+          propertyTableColLower = lookupPrefixHash["property_status"]
+        end
+
+        # puts count
         yield({
-                index: index+1,
+                index: index,
                 row: "#{prefixArray.last} - #{columnB[index]}",
-                propertyTableColumn: "#{columnC[index]}",
-                DatabaseTableName: getPropertyTableCol,
-                formatHashColumn: getFormattedHash
+                propertyTableColumn: columnC[index],
+                DatabaseTableName: propertyTableColLower,
+                lookupCode: "#{lookupPrefix.downcase}#{count+1}",
+                formatHashColumn: getFormattedHash,
+                lookupPrefixHash: lookupPrefixHash
               })
       end
     end
