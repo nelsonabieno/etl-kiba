@@ -1,9 +1,11 @@
 require_relative './MyCsvSource'
 require_relative './MyCsvDestination'
+require_relative './MyCsvTransform'
 
 myFileName = './NWBOR_show_file_values.xlsx'
+myFileName2 = './TVMLS_res_lookups.xlsx'
 
 source MyCsvSource, myFileName
-
-destination MyCsvDestination, 'mycsvoutput.csv'
+#transform MyCsvTransform
+destination MyCsvDestination, 'myexceloutput.xlsx'
 
