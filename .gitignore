@@ -1,4 +1,5 @@
-.idea
+.idea/
 *.xlsx
 *.xls
 *.xml
+*.csv
